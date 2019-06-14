@@ -1,0 +1,7 @@
+name = CiviCRM Blocks
+description = Add CiviCRM information as a block
+package = CiviCRM-Contrib
+backdrop = 1.x
+type = module
+
+dependencies[] = civicrm

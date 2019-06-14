@@ -1,0 +1,28 @@
+<?php
+/**
+  * @file 
+  * CiviCRM information provided as Backdrop blocks.
+  */
+
+/**
+ * Implements hook_autoload_info().
+ */
+function civicrm_blocks_autoload_info() {
+  return array(
+    'CivicrmContributionBlock' => 'includes/civicrm_blocks.inc',
+  );
+}
+
+
+/**
+ * Implements hook_block_info().
+ */
+function civicrm_blocks_block_info() {
+  $blocks = array();
+  $blocks['civicrm_blocks_contribution'] = array(
+    'info' => t('CiviCRM Contribution Page'),
+    'description' => t('Add a CiviCRM Contribution Page as a Backdrop block'),
+    'class' => 'CivicrmContributionBlock',
+  );
+  return $blocks;
+}
