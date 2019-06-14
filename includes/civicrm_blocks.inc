@@ -82,6 +82,7 @@ class CivicrmContributionBlock extends Block {
         // invoke() requires environment variables to be set
         $request = $_REQUEST;
         $get = $_GET;
+        $pagetitle = backdrop_get_title();
         foreach ( $args as $key => $value ) {
           if ( $value !== NULL ) {
             $_REQUEST[$key] = $_GET[$key] = $value;
@@ -99,6 +100,7 @@ class CivicrmContributionBlock extends Block {
         // reset the environment
         $_REQUEST = $request;
         $_GET = $get;
+        backdrop_set_title($pagetitle);
         return $content;
       }
     }
