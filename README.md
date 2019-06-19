@@ -1,10 +1,13 @@
 # CiviCRM Blocks
 
-This is currently a proof of concept module that borrows heavily from the core
-CiviCRM Wordpress integration and the Backdrop core blocks code to allow a user
-to insert a CiviCRM Contribution page into a Backdrop Layout via a block.
+This is module is in early development. It allows a user to insert a CiviCRM
+Contribution page into a Backdrop Layout via a block.
 
-## Instructions
+## Installation
+
+- Install this module using the [official Backdrop CMS instructions](https://backdropcms.org/guide/modules).
+
+## Configuration and Usage
 
 - Make sure CiviCRM is installed and you have one or more active Contribution Pages
 set up.
@@ -15,3 +18,23 @@ set up.
 
 When you view that Layout, if visibility settings on the block allow, it should
 pull the CiviCRM contribution page directly in to the Layout in question.
+
+More details may be found (or added) in the [Wiki](https://github.com/backdrop-contrib/civicrm_blocks/wiki)
+
+## Issues
+
+Bugs and Feature requests should be reported in the [Issue Queue](https://github.com/backdrop-contrib/civicrm_blocks/issues)
+
+## Current Maintainers
+
+- [Laryn Kragt Bakker](https://github.com/laryn), [CEDC.org](https://CEDC.org) 
+
+## Credits
+
+- Created by [Laryn Kragt Bakker](https://github.com/laryn), [CEDC.org](https://CEDC.org)
+- Inspired by [CiviCRM Wordpress integration](https://github.com/civicrm/civicrm-wordpress) shortcodes functionality.
+
+## License
+
+This project is GPL-2.0 (or later) software. See the LICENSE.txt file in this directory for
+complete text.
