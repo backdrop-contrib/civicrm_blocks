@@ -2,11 +2,11 @@
 
 
 /**
- *  CivicrmContributionBlock extends Block
+ *  CivicrmPageBlock extends Block
  *
- *  This class allows us to create blocks from CiviCRM Contribution Pages.
+ *  This class allows us to create blocks from CiviCRM Pages.
  */
-class CivicrmContributionBlock extends Block {
+class CivicrmPageBlock extends Block {
   /**
    * {@inheritdoc}
    */
@@ -14,6 +14,10 @@ class CivicrmContributionBlock extends Block {
     parent::__construct($plugin_name, $data);
     $this->settings += array(
       'contribution_page' => '',
+    );
+    $this->settings['contexts']['civicrm-blocks'] = array(
+      'title' => 'Configure this Contribution Page',
+      'href' => url('/civicrm/admin/contribute?reset=1', array('absolute' => TRUE)),
     );
   }
   /**
@@ -31,12 +35,35 @@ class CivicrmContributionBlock extends Block {
       default:
         if (!empty($this->settings['contribution_page'])) {
           civicrm_initialize();
-          $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
-            'sequential' => 1,
-            'is_active' => 1,
-            'id' => $this->settings['contribution_page'],
-          ]);
-          $title = $contributionpage['title'];
+          switch ($this->settings['page_type']) {
+            case 'civicrm/contribute/transact':
+              $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
+                'sequential' => 1,
+                'is_active' => 1,
+                'id' => $this->settings['contribution_page'],
+              ]);
+              if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
+                $title = $contributionpage['title'];
+              }
+              break;
+              
+            case 'civicrm/event/register':
+              $eventpage = civicrm_api3('Event', 'getsingle', [
+                'sequential' => 1,
+                'is_public' => 1,
+                'start_date' => ['>=' => date('Y-m-d')],
+                'end_date' => ['>=' => date('Y-m-d')],
+                'is_online_registration' => 1,
+                'id' => $this->settings['event_page'],
+              ]);
+              if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+                $title = $eventpage['title'];
+              }
+              break;
+              
+            default:
+              break;
+          }
         }
         break;
     }
@@ -47,7 +74,7 @@ class CivicrmContributionBlock extends Block {
    *  Sets title text on draggable block panel in Layout builder.
    */
   function getAdminTitle() {
-    return !empty($this->settings['title']) ? check_plain($this->settings['title']) : t('CiviCRM Contribution Page');
+    return !empty($this->settings['title']) ? check_plain($this->settings['title']) : t('CiviCRM Page');
   }
   
   /**
@@ -58,52 +85,40 @@ class CivicrmContributionBlock extends Block {
    * @return string
    */
   function getContent() {
-    if (!empty($this->settings['contribution_page'])) {
+    $output = '';
+    if (!empty($this->settings['contribution_page']) || !empty($this->settings['event_page'])) {
       civicrm_initialize();
-      $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
-        'sequential' => 1,
-        'is_active' => 1,
-        'id' => $this->settings['contribution_page'],
-      ]);
-      if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
-        // Initialize the system by creating a config object
-        $config = CRM_Core_Config::singleton();
-        $config->userFrameworkFrontend = TRUE;
-  
-        // Load core resources
-        CRM_Core_Resources::singleton()->addCoreResources();
-  
-        $args = array(
-          'id' => $contributionpage['id'],
-          'reset' => 1,
-          'q' => 'civicrm/contribute/transact',
-        );
-        
-        // invoke() requires environment variables to be set
-        $request = $_REQUEST;
-        $get = $_GET;
-        $pagetitle = backdrop_get_title();
-        foreach ( $args as $key => $value ) {
-          if ( $value !== NULL ) {
-            $_REQUEST[$key] = $_GET[$key] = $value;
+      switch ($this->settings['page_type']) {
+        case 'civicrm/contribute/transact':
+          $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
+            'sequential' => 1,
+            'is_active' => 1,
+            'id' => $this->settings['contribution_page'],
+          ]);
+          if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
+            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $this->settings['contribution_page']);
           }
-        }
-        
-        //Invoke will require the 'q' arg to be broken up.
-        $explodedargs = explode('/', $args['q']);
-        $args = array_merge($explodedargs, $args);
-        
-        ob_start(); // Start buffering
-        CRM_Core_Invoke::invoke($args); // Save output into buffer
-        $content = ob_get_clean(); // Save the buffered output and flush the buffer
-        
-        // reset the environment
-        $_REQUEST = $request;
-        $_GET = $get;
-        backdrop_set_title($pagetitle);
-        return $content;
+          break;
+          
+        case 'civicrm/event/register':
+          $eventpage = civicrm_api3('Event', 'getsingle', [
+            'sequential' => 1,
+            'is_public' => 1,
+            'start_date' => ['>=' => date('Y-m-d')],
+            'end_date' => ['>=' => date('Y-m-d')],
+            'is_online_registration' => 1,
+            'id' => $this->settings['event_page'],
+          ]);
+          if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $this->settings['event_page']);
+          }
+          break;
+          
+        default:
+          break;
       }
     }
+    return $output;
   }
 
   /**
@@ -111,87 +126,92 @@ class CivicrmContributionBlock extends Block {
    */
   function form(&$form, &$form_state) {
     civicrm_initialize();
-    $activepages = civicrm_api3('ContributionPage', 'get', [
-      'sequential' => 1,
-      'is_active' => 1,
-    ]);
-    if ($activepages['count'] > 0) {
-      $page_options = array();
-      foreach ($activepages['values'] as $activepage) {
-        $page_options[$activepage['id']] = $activepage['title'];
-      }
-      parent::form($form, $form_state);
-      $form['title_display']['title'] = array(
+    parent::form($form, $form_state);
+    $form['title_display']['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Custom title'),
+      '#default_value' => $this->settings['title'],
+      '#states' => array(
+        'visible' => array(
+          'form.layout-block-configure-form :input[name="title_display"]' => array('value' => LAYOUT_TITLE_CUSTOM),
+        ),
+      ),
+      '#maxlength' => 255,
+    );
+    $form['page_type'] = array(
+      '#type' => 'select',
+      '#title' => t('CiviCRM Page Type'),
+      '#default_value' => isset($this->settings['page_type']) ? $this->settings['page_type'] : NULL,
+      '#options' => _civicrm_blocks_pagetype(),
+    );
+    $form['contribution_page'] = array(
+      '#type' => 'select',
+      '#title' => t('Contribution Page'),
+      '#default_value' => isset($this->settings['contribution_page']) ? $this->settings['contribution_page'] : NULL,
+      '#options' => _civicrm_blocks_contribution_page_options(),
+      '#states' => array(
+        'visible' => array(
+          'select[name="page_type"]' => array('value' => 'civicrm/contribute/transact'),
+        ),
+      ),
+    );
+    $form['event_page'] = array(
+      '#type' => 'select',
+      '#title' => t('Event Registration Page'),
+      '#default_value' => isset($this->settings['event_page']) ? $this->settings['event_page'] : NULL,
+      '#options' => _civicrm_blocks_event_page_options(),
+      '#states' => array(
+        'visible' => array(
+          'select[name="page_type"]' => array('value' => 'civicrm/event/register'),
+        ),
+      ),
+    );
+    if (module_exists('block')) {
+      $form['convert'] = array(
+        '#weight' => 2,
+        '#parents' => array(),
+      );
+      $form['convert']['reusable'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Make this block reusable'),
+        '#description' => t('If enabled, this block will be made reusable across different layouts and be listed in on the !block_link page.', array('!block_link' => l(t('Custom blocks'), 'admin/structure/block'))),
+        '#weight' => 1,
+      );
+      $form['convert']['label'] = array(
         '#type' => 'textfield',
-        '#title' => t('Custom title'),
-        '#default_value' => $this->settings['title'],
+        '#title' => t('Admin label'),
+        '#maxlength' => 64,
+        '#description' => t('This text is used only in administrative interfaces. It will not be shown to site visitors.'),
+        '#weight' => 2,
         '#states' => array(
           'visible' => array(
-            'form.layout-block-configure-form :input[name="title_display"]' => array('value' => LAYOUT_TITLE_CUSTOM),
+            ':input[name="reusable"]' => array('checked' => TRUE),
           ),
         ),
-        '#maxlength' => 255,
       );
-      $form['contribution_page'] = array(
-        '#type' => 'select',
-        '#title' => t('CiviCRM Contribution Page'),
-        //TODO: populate with active page values
-        '#options' => $page_options,
-        '#default_value' => $this->settings['contribution_page'],
-        '#description' => t('Which CiviCRM Contribution page would you like to display?'),
+      $form['convert']['description'] = array(
+       '#type' => 'textfield',
+       '#title' => t('Admin description'),
+       '#maxlength' => 128,
+       '#description' => t('This text is used only in administrative interfaces. It will not be shown to site visitors.'),
+       '#weight' => 4,
+        '#states' => array(
+          'visible' => array(
+            ':input[name="reusable"]' => array('checked' => TRUE),
+          ),
+        ),
       );
-      if (module_exists('block')) {
-        $form['convert'] = array(
-          '#weight' => 2,
-          '#parents' => array(),
-        );
-        $form['convert']['reusable'] = array(
-          '#type' => 'checkbox',
-          '#title' => t('Make this block reusable'),
-          '#description' => t('If enabled, this block will be made reusable across different layouts and be listed in on the !block_link page.', array('!block_link' => l(t('Custom blocks'), 'admin/structure/block'))),
-          '#weight' => 1,
-        );
-        $form['convert']['label'] = array(
-          '#type' => 'textfield',
-          '#title' => t('Admin label'),
-          '#maxlength' => 64,
-          '#description' => t('This text is used only in administrative interfaces. It will not be shown to site visitors.'),
-          '#weight' => 2,
-          '#states' => array(
-            'visible' => array(
-              ':input[name="reusable"]' => array('checked' => TRUE),
-            ),
-          ),
-        );
-        $form['convert']['description'] = array(
-         '#type' => 'textfield',
-         '#title' => t('Admin description'),
-         '#maxlength' => 128,
-         '#description' => t('This text is used only in administrative interfaces. It will not be shown to site visitors.'),
-         '#weight' => 4,
-          '#states' => array(
-            'visible' => array(
-              ':input[name="reusable"]' => array('checked' => TRUE),
-            ),
-          ),
-        );
-        $form['convert']['delta'] = array(
-          '#type' => 'machine_name',
-          '#title' => t('Internal name'),
-          '#maxlength' => 64,
-          '#machine_name' => array(
-            'source' => array('convert', 'label'),
-            'exists' => 'block_custom_block_load',
-          ),
-          '#description' => t('A unique machine-readable name containing letters, numbers, and underscores.'),
-          '#weight' => 3,
-          '#required' => FALSE,
-        );
-      }
-    }
-    else {
-      $form['contribution_page'] = array(
-        '#markup' => t('There are no active CiviCRM Contribution Pages currently. Please set one up first.'),
+      $form['convert']['delta'] = array(
+        '#type' => 'machine_name',
+        '#title' => t('Internal name'),
+        '#maxlength' => 64,
+        '#machine_name' => array(
+          'source' => array('convert', 'label'),
+          'exists' => 'block_custom_block_load',
+        ),
+        '#description' => t('A unique machine-readable name containing letters, numbers, and underscores.'),
+        '#weight' => 3,
+        '#required' => FALSE,
       );
     }
   }
@@ -231,7 +251,122 @@ class CivicrmContributionBlock extends Block {
     }
     else {
       $this->settings['title'] = $form_state['values']['title'];
+      $this->settings['page_type'] = $form_state['values']['page_type'];
       $this->settings['contribution_page'] = $form_state['values']['contribution_page'];
+      $this->settings['event_page'] = $form_state['values']['event_page'];
     }
+  }
+}
+
+/**
+ * Page types currently supported.
+ *
+ */
+function _civicrm_blocks_pagetype($type = NULL) {
+  civicrm_initialize();
+  static $q;
+
+  if (empty($q)) {
+    $q = array(
+      'civicrm/event/register' => 'Event Registration Page',
+      'civicrm/contribute/transact' => 'Contribution Page',
+    );
+  }
+
+  if ($type) {
+    return isset($q[$type]) ? $q[$type] : '';
+  }
+
+  return $q;
+}
+
+
+/**
+ * Currently active contribution pages.
+ *
+ */
+function _civicrm_blocks_contribution_page_options() {
+  civicrm_initialize();
+  $contribution_page_options = array();
+  $contribution_activepages = civicrm_api3('ContributionPage', 'get', [
+    'sequential' => 1,
+    'is_active' => 1,
+  ]);
+  if ($contribution_activepages['count'] > 0) {
+    $contribution_page_options[0] = 'None';
+    foreach ($contribution_activepages['values'] as $contribution_activepage) {
+      $contribution_page_options[$contribution_activepage['id']] = $contribution_activepage['title'];
+    }
+  }
+  return $contribution_page_options;
+}
+
+/**
+ * Currently active event pages.
+ *
+ */
+function _civicrm_blocks_event_page_options() {
+  civicrm_initialize();
+  $event_page_options = array();
+  $event_activepages = civicrm_api3('Event', 'get', [
+    'sequential' => 1,
+    'is_public' => 1,
+    'start_date' => ['>=' => date('Y-m-d')],
+    'end_date' => ['>=' => date('Y-m-d')],
+    'is_online_registration' => 1,
+  ]);
+  if ($event_activepages['count'] > 0) {
+    $event_page_options[0] = 'None';
+    foreach ($event_activepages['values'] as $event_activepage) {
+      $event_page_options[$event_activepage['id']] = $event_activepage['title'];
+    }
+  }
+  return $event_page_options;
+}
+
+/**
+  * Inject CiviCRM page into content.
+  *
+  */
+function _civicrm_blocks_inject_page($type = '', $pageid = 0) {
+  if (_civicrm_blocks_pagetype($type) != '' && is_numeric($pageid) && $pageid > 0) {
+    civicrm_initialize();
+    // Initialize the system by creating a config object
+    $config = CRM_Core_Config::singleton();
+    $config->userFrameworkFrontend = TRUE;
+
+    // Load core resources
+    CRM_Core_Resources::singleton()->addCoreResources();
+
+    $args = array(
+      'id' => $pageid,
+      'reset' => 1,
+      'q' => $type,
+    );
+    
+    // invoke() requires environment variables to be set
+    $request = $_REQUEST;
+    $get = $_GET;
+    $pagetitle = backdrop_get_title();
+    foreach ( $args as $key => $value ) {
+      if ( $value !== NULL ) {
+        $_REQUEST[$key] = $_GET[$key] = $value;
+      }
+    }
+    
+    //Invoke will require the 'q' arg to be broken up.
+    $explodedargs = explode('/', $args['q']);
+    $args = array_merge($explodedargs, $args);
+    
+    ob_start(); // Start buffering
+    CRM_Core_Invoke::invoke($args); // Save output into buffer
+    $content = ob_get_clean(); // Save the buffered output and flush the buffer
+    
+    // reset the environment
+    $_REQUEST = $request;
+    $_GET = $get;
+    backdrop_set_title($pagetitle);
+    
+    return $content;
   }
 }

@@ -9,7 +9,7 @@
  */
 function civicrm_blocks_autoload_info() {
   return array(
-    'CivicrmContributionBlock' => 'includes/civicrm_blocks.inc',
+    'CivicrmPageBlock' => 'includes/civicrm_blocks.inc',
   );
 }
 
@@ -20,9 +20,23 @@ function civicrm_blocks_autoload_info() {
 function civicrm_blocks_block_info() {
   $blocks = array();
   $blocks['civicrm_blocks_contribution'] = array(
-    'info' => t('CiviCRM Contribution Page'),
-    'description' => t('Add a CiviCRM Contribution Page as a Backdrop block'),
-    'class' => 'CivicrmContributionBlock',
+    'info' => t('CiviCRM Page'),
+    'description' => t('Add a CiviCRM Event or Contribution Page as a Backdrop block'),
+    'class' => 'CivicrmPageBlock',
   );
   return $blocks;
+}
+
+/**
+ * Implements hook_contextual_links_view_alter().
+ */
+function civicrm_blocks_contextual_links_view_alter(&$element, &$items) {
+  // Check that this block is produced by this module.
+  //dpm($element);
+  if (0 && isset($element['#links']['layout-configure-redirect-']) && $element['#links']['layout-configure-redirect-']['title'] == "Configure block") {
+    $element['#links']['civicrm-blocks'] = array(
+      'title' => 'Configure this CiviCRM Page',
+      'href' => url('/civicrm/admin/contribute?reset=1', array('absolute' => TRUE)),
+    );
+  }
 }
