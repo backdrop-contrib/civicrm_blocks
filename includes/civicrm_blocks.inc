@@ -14,9 +14,10 @@ class CivicrmPageBlock extends Block {
     parent::__construct($plugin_name, $data);
     $this->settings += array(
       'contribution_page' => '',
+      'event_page' => '',
     );
     $this->settings['contexts']['civicrm-blocks'] = array(
-      'title' => 'Configure this Contribution Page',
+      'title' => 'Configure this CiviCRM Page',
       'href' => url('/civicrm/admin/contribute?reset=1', array('absolute' => TRUE)),
     );
   }
@@ -33,7 +34,7 @@ class CivicrmPageBlock extends Block {
         break;
       case LAYOUT_TITLE_DEFAULT:
       default:
-        if (!empty($this->settings['contribution_page'])) {
+        if (!empty($this->settings['contribution_page']) || !empty($this->settings['event_page'])) {
           civicrm_initialize();
           switch ($this->settings['page_type']) {
             case 'civicrm/contribute/transact':
