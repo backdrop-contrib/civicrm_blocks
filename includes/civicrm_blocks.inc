@@ -105,13 +105,12 @@ class CivicrmPageBlock extends Block {
           $eventpage = civicrm_api3('Event', 'getsingle', [
             'sequential' => 1,
             'is_public' => 1,
-            'start_date' => ['>=' => date('Y-m-d')],
-            'end_date' => ['>=' => date('Y-m-d')],
+            'is_active' => 1,
             'is_online_registration' => 1,
             'id' => $this->settings['event_page'],
           ]);
-          if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
-            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $this->settings['event_page']);
+          if (isset($eventpage['id'])) {
+            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $eventpage['id']);
           }
           break;
           
@@ -358,6 +357,7 @@ function _civicrm_blocks_inject_page($type = '', $pageid = 0) {
     //Invoke will require the 'q' arg to be broken up.
     $explodedargs = explode('/', $args['q']);
     $args = array_merge($explodedargs, $args);
+    unset($args['q']);
     
     ob_start(); // Start buffering
     CRM_Core_Invoke::invoke($args); // Save output into buffer
