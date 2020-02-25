@@ -13,30 +13,110 @@ function civicrm_blocks_autoload_info() {
   );
 }
 
+/**
+ * Implements hook_menu().
+ */
+function civicrm_blocks_menu() {
+  $items['civicrm_blocks_configure/%/%'] = array(
+      'title' => 'Configure this CiviCRM page',
+      'type' => MENU_LOCAL_ACTION,
+      'context' => MENU_CONTEXT_INLINE,
+      'page callback' => 'civicrm_blocks_configure',
+      'page arguments' => array(1, 2),
+      'access callback' => TRUE,
+  );
+
+  // To use local task menu items, there must be a parent page.
+  $items['civicrm_blocks_configure'] = array(
+      'title' => 'CiviCRM Blocks Configuration Page',
+      'page callback' => 'contextual_node_page',
+      'page arguments' => array(),
+      'access callback' => TRUE,
+  );
+  return $items;
+}
 
 /**
  * Implements hook_block_info().
  */
 function civicrm_blocks_block_info() {
   $blocks = array();
-  $blocks['civicrm_blocks_contribution'] = array(
+  $blocks['civicrm_blocks_page'] = array(
     'info' => t('CiviCRM Page'),
     'description' => t('Add a CiviCRM Event or Contribution Page as a Backdrop block'),
     'class' => 'CivicrmPageBlock',
+    '#contextual_links' => array(
+      'civicrm_blocks' => array(
+        'civicrm/admin/contribute?reset=1',
+      ),
+    ),
   );
   return $blocks;
 }
 
 /**
- * Implements hook_contextual_links_view_alter().
+ * Implements hook_block_view_alter().
  */
-function civicrm_blocks_contextual_links_view_alter(&$element, &$items) {
-  // Check that this block is produced by this module.
-  //dpm($element);
-  if (0 && isset($element['#links']['layout-configure-redirect-']) && $element['#links']['layout-configure-redirect-']['title'] == "Configure block") {
-    $element['#links']['civicrm-blocks'] = array(
-      'title' => 'Configure this CiviCRM Page',
-      'href' => url('/civicrm/admin/contribute?reset=1', array('absolute' => TRUE)),
-    );
+function civicrm_blocks_block_view_alter(&$data, $block) {
+  if ($block->module == 'civicrm_blocks') {
+    switch ($block->settings['page_type']) {
+      case 'civicrm/event/register':
+        $type = 'event';
+        $pageid = $block->settings['event_page'];
+        break;
+      case 'civicrm/contribute/transact':
+        $type = 'contribute';
+        $pageid = $block->settings['contribution_page'];
+        break;
+      default:
+        $type = NULL;
+        break;
+    }
+    if ($type) {
+      $data['content']['#contextual_links']['civicrm_blocks'] = array(
+        'civicrm_blocks_configure/' . $type . '/' . $pageid,
+        $block->module,
+      );
+    }
+  }
+}
+
+/**
+  * Callback to trigger a CiviCRM configuration page from a contextual link.
+  */
+  
+function civicrm_blocks_configure($type = '', $id = 0) {
+  $pagetype = check_plain($type);
+  $pageid = check_plain($id);
+  $destination = check_plain($_GET['destination']);
+  unset($_GET['destination']);
+  switch ($pagetype) {
+    case 'event':
+      $url = url('civicrm/event/manage/registration', array('absolute' => TRUE));
+      $query = array(
+        'id' => $pageid,
+        'action' => 'update',
+        'reset' => 1,
+        'destination' => $destination,
+      );
+      break;
+    case 'contribute':
+      $url = url('civicrm/admin/contribute/settings', array('absolute' => TRUE));
+      $query = array(
+        'id' => $pageid,
+        'action' => 'update',
+        'reset' => 1,
+        'destination' => $destination,
+      );
+      break;
+    default:
+      $url = NULL;
+      $options = NULL;
+      break;
+  }
+  if ($url && is_numeric($pageid) && $pageid > 0) {
+    backdrop_goto($url, array('query' => $query, 'external' => TRUE, 'attributes' => array( 'target' => '_blank')));
+  } else {
+    return t('No valid CiviCRM page was found.');
   }
 }

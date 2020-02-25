@@ -16,10 +16,6 @@ class CivicrmPageBlock extends Block {
       'contribution_page' => '',
       'event_page' => '',
     );
-    $this->settings['contexts']['civicrm-blocks'] = array(
-      'title' => 'Configure this CiviCRM Page',
-      'href' => url('/civicrm/admin/contribute?reset=1', array('absolute' => TRUE)),
-    );
   }
   /**
    *  Sets block subject on block view.
@@ -52,8 +48,7 @@ class CivicrmPageBlock extends Block {
               $eventpage = civicrm_api3('Event', 'getsingle', [
                 'sequential' => 1,
                 'is_public' => 1,
-                'start_date' => ['>=' => date('Y-m-d')],
-                'end_date' => ['>=' => date('Y-m-d')],
+                'is_active' => 1,
                 'is_online_registration' => 1,
                 'id' => $this->settings['event_page'],
               ]);
@@ -311,8 +306,7 @@ function _civicrm_blocks_event_page_options() {
   $event_activepages = civicrm_api3('Event', 'get', [
     'sequential' => 1,
     'is_public' => 1,
-    'start_date' => ['>=' => date('Y-m-d')],
-    'end_date' => ['>=' => date('Y-m-d')],
+    'is_active' => 1,
     'is_online_registration' => 1,
   ]);
   if ($event_activepages['count'] > 0) {
