@@ -92,7 +92,7 @@ function civicrm_blocks_configure($type = '', $id = 0) {
   unset($_GET['destination']);
   switch ($pagetype) {
     case 'event':
-      $url = url('civicrm/event/manage/registration', array('absolute' => TRUE));
+      $url = url('civicrm/event/manage/registration', array('absolute' => TRUE, 'attributes' => array( 'target' => '_blank')));
       $query = array(
         'id' => $pageid,
         'action' => 'update',
@@ -101,7 +101,7 @@ function civicrm_blocks_configure($type = '', $id = 0) {
       );
       break;
     case 'contribute':
-      $url = url('civicrm/admin/contribute/settings', array('absolute' => TRUE));
+      $url = url('civicrm/admin/contribute/settings', array('absolute' => TRUE, 'attributes' => array( 'target' => '_blank')));
       $query = array(
         'id' => $pageid,
         'action' => 'update',

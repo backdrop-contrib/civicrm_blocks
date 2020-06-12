@@ -92,7 +92,12 @@ class CivicrmPageBlock extends Block {
             'id' => $this->settings['contribution_page'],
           ]);
           if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
-            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $this->settings['contribution_page']);
+            $args = array(
+              'id' => $this->settings['contribution_page'],
+              'q' => $this->settings['page_type'],
+              'action' => $this->settings['mode'],
+            );
+            $output = _civicrm_blocks_inject_page($args);
           }
           break;
           
@@ -105,7 +110,12 @@ class CivicrmPageBlock extends Block {
             'id' => $this->settings['event_page'],
           ]);
           if (isset($eventpage['id'])) {
-            $output = _civicrm_blocks_inject_page($this->settings['page_type'], $eventpage['id']);
+            $args = array(
+              'id' => $eventpage['id'],
+              'q' => $this->settings['page_type'],
+              'action' => $this->settings['mode'],
+            );
+            $output = _civicrm_blocks_inject_page($args);
           }
           break;
           
@@ -138,6 +148,15 @@ class CivicrmPageBlock extends Block {
       '#title' => t('CiviCRM Page Type'),
       '#default_value' => isset($this->settings['page_type']) ? $this->settings['page_type'] : NULL,
       '#options' => _civicrm_blocks_pagetype(),
+    );
+    $form['mode'] = array(
+      '#type' => 'select',
+      '#title' => t('Mode'),
+      '#default_value' => isset($this->settings['mode']) ? $this->settings['mode'] : 'live',
+      '#options' => array(
+        'preview' => 'Test mode',
+        'live' => 'Live mode',
+      ),
     );
     $form['contribution_page'] = array(
       '#type' => 'select',
@@ -247,6 +266,7 @@ class CivicrmPageBlock extends Block {
     else {
       $this->settings['title'] = $form_state['values']['title'];
       $this->settings['page_type'] = $form_state['values']['page_type'];
+      $this->settings['mode'] = $form_state['values']['mode'];
       $this->settings['contribution_page'] = $form_state['values']['contribution_page'];
       $this->settings['event_page'] = $form_state['values']['event_page'];
     }
@@ -322,7 +342,9 @@ function _civicrm_blocks_event_page_options() {
   * Inject CiviCRM page into content.
   *
   */
-function _civicrm_blocks_inject_page($type = '', $pageid = 0) {
+function _civicrm_blocks_inject_page($args = array()) {
+  $type = $args['q'];
+  $pageid = $args['id'];
   if (_civicrm_blocks_pagetype($type) != '' && is_numeric($pageid) && $pageid > 0) {
     civicrm_initialize();
     // Initialize the system by creating a config object
@@ -332,7 +354,7 @@ function _civicrm_blocks_inject_page($type = '', $pageid = 0) {
     // Load core resources
     CRM_Core_Resources::singleton()->addCoreResources();
 
-    $args = array(
+    $args += array(
       'id' => $pageid,
       'reset' => 1,
       'q' => $type,
