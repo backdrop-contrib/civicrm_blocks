@@ -1,6 +1,6 @@
 <?php
 /**
-  * @file 
+  * @file
   * CiviCRM information provided as Backdrop blocks.
   */
 
@@ -18,20 +18,20 @@ function civicrm_blocks_autoload_info() {
  */
 function civicrm_blocks_menu() {
   $items['civicrm_blocks_configure/%/%'] = array(
-      'title' => 'Configure this CiviCRM page',
-      'type' => MENU_LOCAL_ACTION,
-      'context' => MENU_CONTEXT_INLINE,
-      'page callback' => 'civicrm_blocks_configure',
-      'page arguments' => array(1, 2),
-      'access callback' => TRUE,
+    'title' => 'Configure this CiviCRM page',
+    'type' => MENU_LOCAL_ACTION,
+    'context' => MENU_CONTEXT_INLINE,
+    'page callback' => 'civicrm_blocks_configure',
+    'page arguments' => array(1, 2),
+    'access callback' => TRUE,
   );
 
   // To use local task menu items, there must be a parent page.
   $items['civicrm_blocks_configure'] = array(
-      'title' => 'CiviCRM Blocks Configuration Page',
-      'page callback' => 'contextual_node_page',
-      'page arguments' => array(),
-      'access callback' => TRUE,
+    'title' => 'CiviCRM Blocks Configuration Page',
+    'page callback' => 'contextual_node_page',
+    'page arguments' => array(),
+    'access callback' => TRUE,
   );
   return $items;
 }
@@ -48,6 +48,7 @@ function civicrm_blocks_block_info() {
     '#contextual_links' => array(
       'civicrm_blocks' => array(
         'civicrm/admin/contribute?reset=1',
+        array('civicrm_blocks'),
       ),
     ),
   );
@@ -75,7 +76,7 @@ function civicrm_blocks_block_view_alter(&$data, $block) {
     if ($type) {
       $data['content']['#contextual_links']['civicrm_blocks'] = array(
         'civicrm_blocks_configure/' . $type . '/' . $pageid,
-        $block->module,
+        array($block->module),
       );
     }
   }
@@ -84,7 +85,6 @@ function civicrm_blocks_block_view_alter(&$data, $block) {
 /**
   * Callback to trigger a CiviCRM configuration page from a contextual link.
   */
-  
 function civicrm_blocks_configure($type = '', $id = 0) {
   $pagetype = check_plain($type);
   $pageid = check_plain($id);
